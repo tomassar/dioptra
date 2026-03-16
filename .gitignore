@@ -1,5 +1,5 @@
-# Binary
-dioptra
+# Binary (root only, not cmd/dioptra/)
+/dioptra
 
 # Frontend
 ui/node_modules/
