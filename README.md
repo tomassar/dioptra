@@ -1,12 +1,13 @@
-# Dioptra
-
-One command to browse your remote Postgres database. No exposed ports, no config GUIs, just an SSH tunnel and a local dashboard.
+<h1 style="text-align: center;">Dioptra</h1>
+<h3 style="text-align: center;">One command to browse your remote Postgres database. No exposed ports, no config GUIs, just an SSH tunnel and a local dashboard.</h3>
 
 ```
 dioptra connect --host vps.example.com --ssh-user root --db mydb
 ```
 
 Opens a browser with a clean dashboard to browse tables and run queries. Press `Ctrl+C` to tear everything down.
+
+> dioptra /diˈop.tra/ — ancient Greek: an instrument for measuring angles by sight.
 ## Why?
 I decided to use a local postgresql server in my own VPS instead of having an external one, or using supabase. But at the same time I wanted to easily see if there were new users to my app, or how they were using it without having to log into my VPS, use the CLI and query for the table. I wanted it fast and easy, without exposing any port. So thats why I built this: ONE command line and you get direct access to your database in your browser, allowing you to read and write anything on it.
 
