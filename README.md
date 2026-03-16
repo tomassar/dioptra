@@ -7,6 +7,8 @@ dioptra connect --host vps.example.com --ssh-user root --db mydb
 ```
 
 Opens a browser with a clean dashboard to browse tables and run queries. Press `Ctrl+C` to tear everything down.
+## Why?
+I decided to use a local postgresql server in my own VPS instead of having an external one, or using supabase. But at the same time I wanted an easy to visualize if there were new users to my app, or how they were using it without having to log into my VPS, use the CLi and query for the table. I wanted it fast and easy. So thats why I built this: ONE command line and you get direct access to your database in your browser, allowing you to read and write anything on it.
 
 ## How it works
 
