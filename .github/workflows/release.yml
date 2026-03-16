@@ -52,7 +52,7 @@ jobs:
             output="${PROJECT}_${GOOS}_${GOARCH}"
 
             echo "Building ${output}..."
-            CGO_ENABLED=0 GOOS=$GOOS GOARCH=$GOARCH go build -ldflags="-s -w" -o "dist/${output}/${PROJECT}" ./cmd/dioptra
+            CGO_ENABLED=0 GOOS=$GOOS GOARCH=$GOARCH go build -ldflags="-s -w -X github.com/tomassar/dioptra/internal/update.Version=${VERSION}" -o "dist/${output}/${PROJECT}" ./cmd/dioptra
 
             tar -czf "dist/${output}.tar.gz" -C "dist/${output}" "${PROJECT}"
           done

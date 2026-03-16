@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/tomassar/dioptra/internal/update"
 )
 
 var rootCmd = &cobra.Command{
@@ -50,4 +51,24 @@ func Execute() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+func init() {
+	// --version flag
+	rootCmd.Version = update.Version
+	rootCmd.SetVersionTemplate("dioptra {{.Version}}\n")
+
+	// Background update nudge: check after every command, non-blocking
+	cobra.OnFinalize(func() {
+		if update.Version == "dev" {
+			return
+		}
+		latest, err := update.LatestVersion()
+		if err != nil {
+			return // silently skip if offline
+		}
+		if update.IsNewer(update.Version, latest) {
+			fmt.Fprintf(os.Stderr, "\n💡 dioptra %s is available (you have %s). Run 'dioptra update' to upgrade.\n", latest, update.Version)
+		}
+	})
 }
