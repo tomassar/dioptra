@@ -8,8 +8,6 @@ dioptra connect --host vps.example.com --ssh-user root --db mydb
 
 Opens a browser with a clean dashboard to browse tables and run queries. Press `Ctrl+C` to tear everything down.
 
-![dashboard](https://github.com/user-attachments/assets/placeholder.png)
-
 ## How it works
 
 ```
