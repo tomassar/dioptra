@@ -1,0 +1,25 @@
+# Binary
+dioptra
+
+# Frontend
+ui/node_modules/
+# ui/dist/ is committed so `go install` works
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
