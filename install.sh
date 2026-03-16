@@ -65,13 +65,30 @@ chmod +x "${INSTALL_DIR}/${BINARY}"
 
 echo "Installed ${BINARY} ${TAG} to ${INSTALL_DIR}/${BINARY}"
 
-# Warn if install dir is not in PATH
+# Add install dir to PATH if not already there
 case ":$PATH:" in
-  *":${INSTALL_DIR}:"*) ;;
+  *":${INSTALL_DIR}:"*)
+    ;;
   *)
-    echo ""
-    echo "NOTE: ${INSTALL_DIR} is not in your PATH."
-    echo "Add it by running:"
-    echo "  echo 'export PATH=\"${INSTALL_DIR}:\$PATH\"' >> ~/.zshrc"
+    # Detect shell config file
+    if [ -n "$ZSH_VERSION" ] || [ "$(basename "$SHELL")" = "zsh" ]; then
+      SHELL_RC="${HOME}/.zshrc"
+    elif [ -n "$BASH_VERSION" ] || [ "$(basename "$SHELL")" = "bash" ]; then
+      SHELL_RC="${HOME}/.bashrc"
+    else
+      SHELL_RC="${HOME}/.profile"
+    fi
+
+    EXPORT_LINE="export PATH=\"${INSTALL_DIR}:\$PATH\""
+
+    # Avoid duplicates
+    if ! grep -qF "$EXPORT_LINE" "$SHELL_RC" 2>/dev/null; then
+      echo "" >> "$SHELL_RC"
+      echo "# Added by dioptra installer" >> "$SHELL_RC"
+      echo "$EXPORT_LINE" >> "$SHELL_RC"
+      echo ""
+      echo "Added ${INSTALL_DIR} to PATH in ${SHELL_RC}"
+      echo "Run 'source ${SHELL_RC}' or open a new terminal to apply."
+    fi
     ;;
 esac
