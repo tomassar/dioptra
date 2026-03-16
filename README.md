@@ -35,7 +35,7 @@ Your Machine                                VPS
 go install github.com/tomassar/dioptra/cmd/dioptra@latest
 ```
 
-Requires Go 1.26+. The binary is self-contained — no Node.js or other runtime needed after install.
+Requires Go 1.26+. The binary is self-contained, no Node.js or other runtime needed after install.
 
 ### Install script (no Go required)
 
@@ -69,7 +69,7 @@ Requires Go 1.26+ and Node.js 18+.
 ### Quick connect
 
 ```bash
-# Minimal — prompts for DB password
+# Minimal, prompts for DB password
 dioptra connect --host my-vps.com --ssh-user root --db mydb
 
 # With all options
@@ -145,9 +145,9 @@ Auth methods are tried in order: SSH agent → key files → passphrase prompt �
 
 ## Dashboard
 
-- **Browse** — Click any table in the sidebar to see its data with pagination
-- **Query** — Write SQL and run it with `Cmd+Enter` (results capped at 1,000 rows)
-- **Read-only by default** — Use `--write` flag to enable mutations
+- **Browse**: Click any table in the sidebar to see its data with pagination
+- **Query**: Write SQL and run it with `Cmd+Enter` (results capped at 1,000 rows)
+- **Read-only by default**: Use `--write` flag to enable mutations
 
 ## License
 
