@@ -1,5 +1,5 @@
 <h1 align="center">Dioptra</h1>
-<h3 align="center">One command to browse your remote Postgres database. No exposed ports, no config GUIs, just an SSH tunnel and a local dashboard.</h3>
+<h3 align="center">One command to browse your remote Postgres database. No exposed ports, no config GUIs.</h3>
 
 > dioptra /diˈop.tra/ — ancient Greek: an instrument for measuring angles by sight.
 ## Why?
