@@ -3,7 +3,6 @@ set -e
 
 REPO="tomassar/dioptra"
 BINARY="dioptra"
-INSTALL_DIR="/usr/local/bin"
 
 # Detect OS
 OS="$(uname -s)"
@@ -26,6 +25,17 @@ case "$ARCH" in
     exit 1
     ;;
 esac
+
+# Determine install directory (prefer user-writable location)
+if [ -n "$DIOPTRA_INSTALL_DIR" ]; then
+  INSTALL_DIR="$DIOPTRA_INSTALL_DIR"
+elif [ -w "/usr/local/bin" ]; then
+  INSTALL_DIR="/usr/local/bin"
+else
+  INSTALL_DIR="${HOME}/.local/bin"
+fi
+
+mkdir -p "$INSTALL_DIR"
 
 # Get latest release tag
 echo "Fetching latest release..."
@@ -50,13 +60,18 @@ curl -fsSL "$URL" -o "${TMP_DIR}/${ARCHIVE}"
 tar -xzf "${TMP_DIR}/${ARCHIVE}" -C "$TMP_DIR"
 
 # Install
-if [ -w "$INSTALL_DIR" ]; then
-  mv "${TMP_DIR}/${BINARY}" "${INSTALL_DIR}/${BINARY}"
-else
-  echo "Installing to ${INSTALL_DIR} (requires sudo)..."
-  sudo mv "${TMP_DIR}/${BINARY}" "${INSTALL_DIR}/${BINARY}"
-fi
-
+mv "${TMP_DIR}/${BINARY}" "${INSTALL_DIR}/${BINARY}"
 chmod +x "${INSTALL_DIR}/${BINARY}"
 
 echo "Installed ${BINARY} ${TAG} to ${INSTALL_DIR}/${BINARY}"
+
+# Warn if install dir is not in PATH
+case ":$PATH:" in
+  *":${INSTALL_DIR}:"*) ;;
+  *)
+    echo ""
+    echo "NOTE: ${INSTALL_DIR} is not in your PATH."
+    echo "Add it by running:"
+    echo "  echo 'export PATH=\"${INSTALL_DIR}:\$PATH\"' >> ~/.zshrc"
+    ;;
+esac
