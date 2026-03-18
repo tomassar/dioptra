@@ -21,17 +21,18 @@ import (
 )
 
 var connectFlags struct {
-	host      string
-	sshUser   string
-	sshPort   int
-	sshKey    string
-	sshPass   string
-	dbHost    string
-	dbPort    int
-	dbName    string
-	dbUser    string
-	dbPass    string
-	write     bool
+	host     string
+	sshUser  string
+	sshPort  int
+	sshKey   string
+	sshPass  string
+	dbHost   string
+	dbPort   int
+	dbName   string
+	dbUser   string
+	dbPass   string
+	readOnly bool
+
 	noBrowser bool
 }
 
@@ -54,7 +55,7 @@ func init() {
 	f.StringVar(&connectFlags.dbName, "db", "", "Database name")
 	f.StringVar(&connectFlags.dbUser, "db-user", "", "Database user")
 	f.StringVar(&connectFlags.dbPass, "db-password", "", "Database password (or use PGPASSWORD env)")
-	f.BoolVar(&connectFlags.write, "write", false, "Allow write queries")
+	f.BoolVar(&connectFlags.readOnly, "read-only", false, "Connect in read-only mode")
 	f.BoolVar(&connectFlags.noBrowser, "no-browser", false, "Don't open browser automatically")
 
 	rootCmd.AddCommand(connectCmd)
@@ -95,13 +96,13 @@ func runConnect(cmd *cobra.Command, args []string) error {
 
 	// Database
 	fmt.Fprintf(os.Stderr, "→ Connecting to database %q...\n", conn.DBName)
-	database, err := db.Connect(ctx, tun.LocalPort(), conn.DBUser, dbPass, conn.DBName, !connectFlags.write)
+	database, err := db.Connect(ctx, tun.LocalPort(), conn.DBUser, dbPass, conn.DBName, connectFlags.readOnly)
 	if err != nil {
 		return fmt.Errorf("database: %w", err)
 	}
 	defer database.Close()
 	fmt.Fprintf(os.Stderr, "→ Database connected")
-	if !connectFlags.write {
+	if connectFlags.readOnly {
 		fmt.Fprintf(os.Stderr, " (read-only)")
 	}
 	fmt.Fprintln(os.Stderr)

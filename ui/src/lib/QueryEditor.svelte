@@ -1,40 +1,40 @@
 <script lang="ts">
-  import { runQuery, type QueryResult } from './api'
+  import { runQuery, type QueryResult } from "./api";
 
-  let sql = $state('')
-  let result: QueryResult | null = $state(null)
-  let error: string | null = $state(null)
-  let loading = $state(false)
-  let elapsed = $state(0)
+  let sql = $state("");
+  let result: QueryResult | null = $state(null);
+  let error: string | null = $state(null);
+  let loading = $state(false);
+  let elapsed = $state(0);
 
   async function execute() {
-    if (!sql.trim()) return
-    loading = true
-    error = null
-    result = null
-    const start = performance.now()
+    if (!sql.trim()) return;
+    loading = true;
+    error = null;
+    result = null;
+    const start = performance.now();
 
     try {
-      result = await runQuery(sql)
+      result = await runQuery(sql);
     } catch (e: any) {
-      error = e.message
+      error = e.message;
     } finally {
-      elapsed = Math.round(performance.now() - start)
-      loading = false
+      elapsed = Math.round(performance.now() - start);
+      loading = false;
     }
   }
 
   function handleKeydown(e: KeyboardEvent) {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-      e.preventDefault()
-      execute()
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      e.preventDefault();
+      execute();
     }
   }
 
   function formatCell(val: any): string {
-    if (val === null || val === undefined) return 'NULL'
-    if (typeof val === 'object') return JSON.stringify(val)
-    return String(val)
+    if (val === null || val === undefined) return "NULL";
+    if (typeof val === "object") return JSON.stringify(val);
+    return String(val);
   }
 </script>
 
@@ -47,7 +47,11 @@
       spellcheck="false"
     ></textarea>
     <div class="editor-actions">
-      <button class="run-btn" onclick={execute} disabled={loading || !sql.trim()}>
+      <button
+        class="run-btn"
+        onclick={execute}
+        disabled={loading || !sql.trim()}
+      >
         {#if loading}
           Running...
         {:else}
@@ -64,7 +68,7 @@
 
   {#if result}
     <div class="query-meta">
-      <span>{result.rows.length} row{result.rows.length !== 1 ? 's' : ''}</span>
+      <span>{result.rows.length} row{result.rows.length !== 1 ? "s" : ""}</span>
       <span class="dot">·</span>
       <span>{elapsed}ms</span>
     </div>
@@ -107,6 +111,8 @@
     flex-direction: column;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    overflow: hidden;
+    background: var(--bg-primary);
   }
 
   textarea {
@@ -131,30 +137,43 @@
   .editor-actions {
     display: flex;
     justify-content: flex-end;
-    padding: 8px 20px;
+    padding: 12px 20px;
     background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
   }
 
   .run-btn {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 16px;
-    background: var(--accent-dim);
-    color: white;
-    border: none;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--accent);
+    border: 1px solid var(--accent);
     border-radius: var(--radius);
-    font-size: 13px;
+    color: white;
+    font-size: 12px;
     font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: background 0.1s;
   }
 
   .run-btn:hover:not(:disabled) {
-    background: var(--accent);
+    background: var(--accent-dim);
+    border-color: var(--accent-dim);
+  }
+
+  .run-btn:active:not(:disabled) {
+    background: var(--text-primary);
   }
 
   .run-btn:disabled {
     opacity: 0.5;
-    cursor: default;
+    cursor: not-allowed;
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    border-color: var(--border);
+    box-shadow: none;
   }
 
   kbd {
@@ -174,11 +193,10 @@
   }
 
   .query-meta {
-    padding: 8px 20px;
-    font-size: 12px;
+    padding: 12px 24px;
+    font-size: 13px;
     color: var(--text-secondary);
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border);
+    background: transparent;
     font-family: var(--font-mono);
     flex-shrink: 0;
   }
@@ -191,38 +209,48 @@
   .result-scroll {
     overflow: auto;
     flex: 1;
+    background: var(--bg-primary);
   }
 
   table {
     width: 100%;
-    border-collapse: collapse;
-    font-family: var(--font-mono);
-    font-size: 12px;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
   }
 
   th {
     position: sticky;
     top: 0;
     background: var(--bg-tertiary);
-    padding: 8px 12px;
+    padding: 8px 16px;
     text-align: left;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text-secondary);
     border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
     white-space: nowrap;
+    z-index: 10;
+    letter-spacing: 0.04em;
     font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
   }
 
   td {
-    padding: 6px 12px;
+    padding: 12px 20px;
     border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
     max-width: 300px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--text-primary);
+    transition: background 0.2s ease;
+  }
+
+  th:last-child,
+  td:last-child {
+    border-right: none;
   }
 
   .null-cell {
@@ -231,6 +259,6 @@
   }
 
   tr:hover td {
-    background: var(--bg-hover);
+    background: var(--bg-secondary);
   }
 </style>

@@ -37,7 +37,7 @@ Examples:
 
 func init() {
 	// Copy connect flags onto root so they work at the top level too
-	// e.g. dioptra root@host/db --write
+	// e.g. dioptra root@host/db --read-only
 	rootCmd.Flags().AddFlagSet(connectCmd.Flags())
 }
 

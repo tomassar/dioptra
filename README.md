@@ -83,8 +83,8 @@ dioptra connect \
   --db-user postgres \
   --db-password secret
 
-# Enable write queries (read-only by default)
-dioptra connect --host my-vps.com --db mydb --write
+# Enable read-only queries (read-write by default)
+dioptra connect --host my-vps.com --db mydb --read-only
 ```
 
 ### Save connections
@@ -127,7 +127,7 @@ Config is stored at `~/.config/dioptra/config.toml`.
 | `--db-password` | Database password (or set `PGPASSWORD`) |
 | `--db-host` | Remote DB host (default: localhost) |
 | `--db-port` | Remote DB port (default: 5432) |
-| `--write` | Allow write queries |
+| `--read-only` | Connect in read-only mode |
 | `--no-browser` | Don't auto-open browser |
 
 ### SSH
@@ -149,7 +149,7 @@ Auth methods are tried in order: SSH agent → key files → passphrase prompt �
 
 - **Browse**: Click any table in the sidebar to see its data with pagination
 - **Query**: Write SQL and run it with `Cmd+Enter` (results capped at 1,000 rows)
-- **Read-only by default**: Use `--write` flag to enable mutations
+- **Read-write by default**: Use `--read-only` flag to disable mutations
 
 ## License
 
