@@ -40,6 +40,7 @@ func New(database *db.DB, staticFS fs.FS) (*Server, error) {
 	mux.HandleFunc("GET /api/schemas", s.handleSchemas)
 	mux.HandleFunc("GET /api/tables", s.handleTables)
 	mux.HandleFunc("GET /api/tables/{schema}/{table}", s.handleTableData)
+	mux.HandleFunc("POST /api/tables/{schema}/{table}/insert", s.handleInsert)
 	mux.HandleFunc("POST /api/query", s.handleQuery)
 	mux.HandleFunc("GET /api/status", s.handleStatus)
 	mux.Handle("GET /", http.FileServerFS(staticFS))
@@ -90,6 +91,10 @@ func (s *Server) handleTableData(w http.ResponseWriter, r *http.Request) {
 	table := r.PathValue("table")
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	pageSize, _ := strconv.Atoi(r.URL.Query().Get("pageSize"))
+	sortCol := r.URL.Query().Get("sortCol")
+	sortDir := r.URL.Query().Get("sortDir")
+	filterCol := r.URL.Query().Get("filterCol")
+	filterVal := r.URL.Query().Get("filterVal")
 
 	if page < 1 {
 		page = 1
@@ -101,13 +106,13 @@ func (s *Server) handleTableData(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
 
-	data, err := s.db.TableData(ctx, schema, table, page, pageSize)
+	data, err := s.db.TableData(ctx, schema, table, page, pageSize, sortCol, sortDir, filterCol, filterVal)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, response{Error: err.Error()})
 		return
 	}
 
-	count, _ := s.db.TableCount(ctx, schema, table)
+	count, _ := s.db.TableCount(ctx, schema, table, filterCol, filterVal)
 
 	writeJSON(w, http.StatusOK, response{
 		Data: data,
@@ -118,6 +123,27 @@ func (s *Server) handleTableData(w http.ResponseWriter, r *http.Request) {
 			"totalPages": (count + int64(pageSize) - 1) / int64(pageSize),
 		},
 	})
+}
+
+func (s *Server) handleInsert(w http.ResponseWriter, r *http.Request) {
+	schema := r.PathValue("schema")
+	table := r.PathValue("table")
+
+	var data map[string]string
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		writeJSON(w, http.StatusBadRequest, response{Error: "invalid request body"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+
+	if err := s.db.InsertRow(ctx, schema, table, data); err != nil {
+		writeJSON(w, http.StatusInternalServerError, response{Error: err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, response{Data: "ok"})
 }
 
 func (s *Server) handleQuery(w http.ResponseWriter, r *http.Request) {

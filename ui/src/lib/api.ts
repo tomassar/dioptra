@@ -36,13 +36,34 @@ export async function fetchTableData(
   schema: string,
   table: string,
   page: number = 1,
-  pageSize: number = 50
+  pageSize: number = 50,
+  sortCol: string = '',
+  sortDir: string = '',
+  filterCol: string = '',
+  filterVal: string = ''
 ): Promise<{ result: QueryResult; meta: any }> {
+  const params = new URLSearchParams()
+  params.set('page', String(page))
+  params.set('pageSize', String(pageSize))
+  if (sortCol) params.set('sortCol', sortCol)
+  if (sortDir) params.set('sortDir', sortDir)
+  if (filterCol) params.set('filterCol', filterCol)
+  if (filterVal) params.set('filterVal', filterVal)
+
   const res = await request<QueryResult>(
-    `/api/tables/${encodeURIComponent(schema)}/${encodeURIComponent(table)}?page=${page}&pageSize=${pageSize}`
+    `/api/tables/${encodeURIComponent(schema)}/${encodeURIComponent(table)}?${params.toString()}`
   )
   if (res.error) throw new Error(res.error)
   return { result: res.data!, meta: res.meta }
+}
+
+export async function insertRow(schema: string, table: string, data: Record<string, string>): Promise<void> {
+  const res = await request<void>(`/api/tables/${encodeURIComponent(schema)}/${encodeURIComponent(table)}/insert`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (res.error) throw new Error(res.error)
 }
 
 export async function runQuery(sql: string): Promise<QueryResult> {

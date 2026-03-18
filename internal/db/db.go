@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -103,7 +104,7 @@ func (d *DB) Tables(ctx context.Context, schema string) ([]TableInfo, error) {
 	return tables, rows.Err()
 }
 
-func (d *DB) TableData(ctx context.Context, schema, table string, page, pageSize int) (*QueryResult, error) {
+func (d *DB) TableData(ctx context.Context, schema, table string, page, pageSize int, sortCol, sortDir, filterCol, filterVal string) (*QueryResult, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -112,12 +113,29 @@ func (d *DB) TableData(ctx context.Context, schema, table string, page, pageSize
 	}
 	offset := (page - 1) * pageSize
 
-	query := fmt.Sprintf(
-		`SELECT * FROM %s.%s LIMIT $1 OFFSET $2`,
-		quoteIdent(schema), quoteIdent(table),
-	)
+	query := fmt.Sprintf(`SELECT * FROM %s.%s`, quoteIdent(schema), quoteIdent(table))
 
-	rows, err := d.pool.Query(ctx, query, pageSize, offset)
+	args := []any{}
+	argIdx := 1
+
+	if filterCol != "" && filterVal != "" {
+		query += fmt.Sprintf(` WHERE %s::text ILIKE $%d`, quoteIdent(filterCol), argIdx)
+		args = append(args, "%"+filterVal+"%")
+		argIdx++
+	}
+
+	if sortCol != "" {
+		dir := "ASC"
+		if sortDir == "DESC" || sortDir == "desc" {
+			dir = "DESC"
+		}
+		query += fmt.Sprintf(` ORDER BY %s %s`, quoteIdent(sortCol), dir)
+	}
+
+	query += fmt.Sprintf(` LIMIT $%d OFFSET $%d`, argIdx, argIdx+1)
+	args = append(args, pageSize, offset)
+
+	rows, err := d.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -139,12 +157,59 @@ func (d *DB) TableData(ctx context.Context, schema, table string, page, pageSize
 	return &QueryResult{Columns: cols, Rows: result}, rows.Err()
 }
 
-func (d *DB) TableCount(ctx context.Context, schema, table string) (int64, error) {
+func (d *DB) TableCount(ctx context.Context, schema, table, filterCol, filterVal string) (int64, error) {
+	query := fmt.Sprintf(`SELECT COUNT(*) FROM %s.%s`, quoteIdent(schema), quoteIdent(table))
+	var args []any
+
+	if filterCol != "" && filterVal != "" {
+		query += fmt.Sprintf(` WHERE %s::text ILIKE $1`, quoteIdent(filterCol))
+		args = append(args, "%"+filterVal+"%")
+	}
+
 	var count int64
-	err := d.pool.QueryRow(ctx,
-		fmt.Sprintf(`SELECT COUNT(*) FROM %s.%s`, quoteIdent(schema), quoteIdent(table)),
-	).Scan(&count)
+	err := d.pool.QueryRow(ctx, query, args...).Scan(&count)
 	return count, err
+}
+
+func (d *DB) InsertRow(ctx context.Context, schema, table string, data map[string]string) error {
+	if d.readOnly {
+		return fmt.Errorf("database is in read-only mode")
+	}
+
+	if len(data) == 0 {
+		query := fmt.Sprintf(`INSERT INTO %s.%s DEFAULT VALUES`, quoteIdent(schema), quoteIdent(table))
+		_, err := d.pool.Exec(ctx, query)
+		return err
+	}
+
+	var cols []string
+	var placeholders []string
+	var args []any
+
+	i := 1
+	for k, v := range data {
+		if v == "" {
+			continue // letting db handle defaults/null
+		}
+		cols = append(cols, quoteIdent(k))
+		placeholders = append(placeholders, fmt.Sprintf("$%d", i))
+		args = append(args, v)
+		i++
+	}
+
+	if len(cols) == 0 {
+		query := fmt.Sprintf(`INSERT INTO %s.%s DEFAULT VALUES`, quoteIdent(schema), quoteIdent(table))
+		_, err := d.pool.Exec(ctx, query)
+		return err
+	}
+
+	query := fmt.Sprintf(`INSERT INTO %s.%s (%s) VALUES (%s)`,
+		quoteIdent(schema), quoteIdent(table),
+		strings.Join(cols, ", "),
+		strings.Join(placeholders, ", "))
+
+	_, err := d.pool.Exec(ctx, query, args...)
+	return err
 }
 
 func (d *DB) RunQuery(ctx context.Context, sql string) (*QueryResult, error) {
