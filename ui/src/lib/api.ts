@@ -66,6 +66,15 @@ export async function insertRow(schema: string, table: string, data: Record<stri
   if (res.error) throw new Error(res.error)
 }
 
+export async function updateRow(schema: string, table: string, pkValues: Record<string, any>, updates: Record<string, any>): Promise<void> {
+  const res = await request<void>(`/api/tables/${encodeURIComponent(schema)}/${encodeURIComponent(table)}/update`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pkValues, updates }),
+  })
+  if (res.error) throw new Error(res.error)
+}
+
 export async function runQuery(sql: string): Promise<QueryResult> {
   const res = await request<QueryResult>('/api/query', {
     method: 'POST',

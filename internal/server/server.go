@@ -41,6 +41,7 @@ func New(database *db.DB, staticFS fs.FS) (*Server, error) {
 	mux.HandleFunc("GET /api/tables", s.handleTables)
 	mux.HandleFunc("GET /api/tables/{schema}/{table}", s.handleTableData)
 	mux.HandleFunc("POST /api/tables/{schema}/{table}/insert", s.handleInsert)
+	mux.HandleFunc("POST /api/tables/{schema}/{table}/update", s.handleUpdate)
 	mux.HandleFunc("POST /api/query", s.handleQuery)
 	mux.HandleFunc("GET /api/status", s.handleStatus)
 	mux.Handle("GET /", http.FileServerFS(staticFS))
@@ -113,14 +114,16 @@ func (s *Server) handleTableData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	count, _ := s.db.TableCount(ctx, schema, table, filterCol, filterVal)
+	pks, _ := s.db.TablePK(ctx, schema, table)
 
 	writeJSON(w, http.StatusOK, response{
 		Data: data,
 		Meta: map[string]any{
-			"page":       page,
-			"pageSize":   pageSize,
-			"totalRows":  count,
-			"totalPages": (count + int64(pageSize) - 1) / int64(pageSize),
+			"page":        page,
+			"pageSize":    pageSize,
+			"totalRows":   count,
+			"totalPages":  (count + int64(pageSize) - 1) / int64(pageSize),
+			"primaryKeys": pks,
 		},
 	})
 }
@@ -139,6 +142,30 @@ func (s *Server) handleInsert(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	if err := s.db.InsertRow(ctx, schema, table, data); err != nil {
+		writeJSON(w, http.StatusInternalServerError, response{Error: err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, response{Data: "ok"})
+}
+
+func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
+	schema := r.PathValue("schema")
+	table := r.PathValue("table")
+
+	var req struct {
+		PKValues map[string]any `json:"pkValues"`
+		Updates  map[string]any `json:"updates"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, response{Error: "invalid request body"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+
+	if err := s.db.UpdateRow(ctx, schema, table, req.PKValues, req.Updates); err != nil {
 		writeJSON(w, http.StatusInternalServerError, response{Error: err.Error()})
 		return
 	}

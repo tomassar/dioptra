@@ -1,6 +1,11 @@
 <script lang="ts">
   import { untrack } from "svelte";
-  import { fetchTableData, insertRow, type QueryResult } from "./api";
+  import {
+    fetchTableData,
+    insertRow,
+    updateRow,
+    type QueryResult,
+  } from "./api";
 
   interface Props {
     schema: string;
@@ -25,6 +30,9 @@
   let showSort = $state(false);
   let showInsert = $state(false);
   let insertData: Record<string, string> = $state({});
+
+  let editingCell: { rowIndex: number; colIndex: number } | null = $state(null);
+  let editValue = $state("");
 
   async function load() {
     loading = true;
@@ -58,6 +66,64 @@
     } catch (e: any) {
       error = e.message;
     }
+  }
+
+  async function saveEdit(rowIndex: number, colIndex: number) {
+    if (!editingCell || !result || !meta?.primaryKeys?.length) return;
+
+    const originalValue = result.rows[rowIndex][colIndex];
+    if (String(originalValue ?? "") === editValue) {
+      editingCell = null;
+      return;
+    }
+
+    const pks = meta.primaryKeys as string[];
+    const pkValues: Record<string, any> = {};
+    for (const pk of pks) {
+      const idx = result.columns.indexOf(pk);
+      if (idx !== -1) {
+        pkValues[pk] = result.rows[rowIndex][idx];
+      }
+    }
+
+    const colName = result.columns[colIndex];
+    const updates = { [colName]: editValue };
+
+    try {
+      await updateRow(schema, table, pkValues, updates);
+      result.rows[rowIndex][colIndex] = editValue;
+      editingCell = null;
+    } catch (e: any) {
+      error = e.message;
+      editingCell = null;
+    }
+  }
+
+  function handleCellKeydown(
+    e: KeyboardEvent,
+    rowIndex: number,
+    colIndex: number,
+  ) {
+    if (e.key === "Enter") {
+      saveEdit(rowIndex, colIndex);
+    } else if (e.key === "Escape") {
+      editingCell = null;
+    }
+  }
+
+  function startEdit(rowIndex: number, colIndex: number, originalValue: any) {
+    if (!meta?.primaryKeys?.length) {
+      alert(
+        "This table has no primary key, so rows cannot be edited directly.",
+      );
+      return;
+    }
+    editingCell = { rowIndex, colIndex };
+    editValue = String(originalValue ?? "");
+  }
+
+  function focusNode(node: HTMLElement) {
+    node.focus();
   }
 
   $effect(() => {
@@ -319,11 +385,27 @@
           </tr>
         </thead>
         <tbody>
-          {#each result.rows as row}
+          {#each result.rows as row, rowIndex}
             <tr>
-              {#each row as cell}
-                <td class:null-cell={cell === null || cell === undefined}>
-                  {formatCell(cell)}
+              {#each row as cell, colIndex}
+                <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+                <td
+                  class:null-cell={cell === null || cell === undefined}
+                  ondblclick={() => startEdit(rowIndex, colIndex, cell)}
+                >
+                  {#if editingCell?.rowIndex === rowIndex && editingCell?.colIndex === colIndex}
+                    <input
+                      type="text"
+                      class="cell-edit-input"
+                      bind:value={editValue}
+                      onblur={() => saveEdit(rowIndex, colIndex)}
+                      onkeydown={(e) =>
+                        handleCellKeydown(e, rowIndex, colIndex)}
+                      use:focusNode
+                    />
+                  {:else}
+                    {formatCell(cell)}
+                  {/if}
                 </td>
               {/each}
             </tr>
@@ -515,6 +597,24 @@
     white-space: nowrap;
     color: var(--text-primary);
     transition: background 0.2s ease;
+    position: relative;
+  }
+
+  .cell-edit-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0 20px;
+    margin: 0;
+    border: none;
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 13px;
+    z-index: 10;
   }
 
   th:last-child,
