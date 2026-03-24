@@ -224,7 +224,7 @@ func (d *DB) RunQuery(ctx context.Context, sql string) (*QueryResult, error) {
 		cols[i] = fd.Name
 	}
 
-	var result [][]any
+	result := make([][]any, 0)
 	for i := 0; rows.Next() && i < 1000; i++ {
 		vals, err := rows.Values()
 		if err != nil {
