@@ -69,7 +69,7 @@
   }
 
   async function saveEdit(rowIndex: number, colIndex: number) {
-    if (!editingCell || !result || !meta?.primaryKeys?.length) return;
+    if (!result || !meta?.primaryKeys?.length) return;
 
     const originalValue = result.rows[rowIndex][colIndex];
     if (String(originalValue ?? "") === editValue) {
@@ -111,12 +111,18 @@
     }
   }
 
-  function startEdit(rowIndex: number, colIndex: number, originalValue: any) {
+  async function startEdit(rowIndex: number, colIndex: number, originalValue: any) {
     if (!meta?.primaryKeys?.length) {
       alert(
         "This table has no primary key, so rows cannot be edited directly.",
       );
       return;
+    }
+    // Already editing this cell, do nothing
+    if (editingCell?.rowIndex === rowIndex && editingCell?.colIndex === colIndex) return;
+    // Save any in-progress edit before switching cells
+    if (editingCell) {
+      await saveEdit(editingCell.rowIndex, editingCell.colIndex);
     }
     editingCell = { rowIndex, colIndex };
     editValue = String(originalValue ?? "");
@@ -391,18 +397,32 @@
                 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
                 <td
                   class:null-cell={cell === null || cell === undefined}
-                  ondblclick={() => startEdit(rowIndex, colIndex, cell)}
+                  class:editing={editingCell?.rowIndex === rowIndex && editingCell?.colIndex === colIndex}
+                  onclick={() => startEdit(rowIndex, colIndex, cell)}
                 >
                   {#if editingCell?.rowIndex === rowIndex && editingCell?.colIndex === colIndex}
                     <input
                       type="text"
                       class="cell-edit-input"
                       bind:value={editValue}
-                      onblur={() => saveEdit(rowIndex, colIndex)}
                       onkeydown={(e) =>
                         handleCellKeydown(e, rowIndex, colIndex)}
                       use:focusNode
                     />
+                    <div class="cell-edit-actions" role="group">
+                      <button
+                        class="cell-action-btn save"
+                        title="Save (Enter)"
+                        onmousedown={(e) => e.preventDefault()}
+                        onclick={(e) => { e.stopPropagation(); saveEdit(rowIndex, colIndex); }}
+                      >✓</button>
+                      <button
+                        class="cell-action-btn cancel"
+                        title="Cancel (Esc)"
+                        onmousedown={(e) => e.preventDefault()}
+                        onclick={(e) => { e.stopPropagation(); editingCell = null; }}
+                      >✕</button>
+                    </div>
                   {:else}
                     {formatCell(cell)}
                   {/if}
@@ -598,6 +618,13 @@
     color: var(--text-primary);
     transition: background 0.2s ease;
     position: relative;
+    cursor: text;
+  }
+
+  td.editing {
+    padding: 0;
+    overflow: visible;
+    z-index: 5;
   }
 
   .cell-edit-input {
@@ -606,7 +633,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    padding: 0 20px;
+    padding: 0 64px 0 12px;
     margin: 0;
     border: none;
     outline: 2px solid var(--accent);
@@ -615,6 +642,53 @@
     color: var(--text-primary);
     font-size: 13px;
     z-index: 10;
+    box-sizing: border-box;
+  }
+
+  .cell-edit-actions {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0 4px;
+    z-index: 11;
+  }
+
+  .cell-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 3px;
+    border: none;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  .cell-action-btn.save {
+    background: var(--accent);
+    color: white;
+  }
+
+  .cell-action-btn.save:hover {
+    background: var(--accent-dim);
+  }
+
+  .cell-action-btn.cancel {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+
+  .cell-action-btn.cancel:hover {
+    color: var(--text-primary);
+    border-color: var(--text-muted);
   }
 
   th:last-child,
