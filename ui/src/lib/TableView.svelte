@@ -631,9 +631,10 @@
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
+    min-width: max(100%, 180px);
+    width: max(100%, 180px);
     height: 100%;
-    padding: 0 64px 0 12px;
+    padding: 0 12px;
     margin: 0;
     border: none;
     outline: 2px solid var(--accent);
@@ -641,20 +642,25 @@
     background: var(--bg-primary);
     color: var(--text-primary);
     font-size: 13px;
-    z-index: 10;
+    z-index: 20;
     box-sizing: border-box;
+    box-shadow: 2px 4px 12px rgba(0,0,0,0.15);
   }
 
   .cell-edit-actions {
     position: absolute;
-    top: 0;
-    right: 0;
-    height: 100%;
+    top: 50%;
+    left: max(100%, 180px);
+    transform: translateY(-50%);
     display: flex;
     align-items: center;
     gap: 2px;
     padding: 0 4px;
-    z-index: 11;
+    z-index: 21;
+    background: var(--bg-primary);
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+    height: 100%;
   }
 
   .cell-action-btn {
